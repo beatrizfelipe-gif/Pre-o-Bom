@@ -44,7 +44,16 @@ const quotations = new Map();
 // ─── MERCADO LIVRE: busca por nome ──────────────────────────────
 async function searchMLByName(query, limit = 8) {
   const url = `https://api.mercadolibre.com/sites/MLB/search?q=${encodeURIComponent(query)}&limit=${limit}`;
-  const { data } = await axios.get(url, { timeout: 10000 });
+  const { data } = await axios.get(url, {
+    timeout: 10000,
+    headers: {
+      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+      'Accept': 'application/json, text/plain, */*',
+      'Accept-Language': 'pt-BR,pt;q=0.9',
+      'Referer': 'https://www.mercadolivre.com.br/',
+      'Origin': 'https://www.mercadolivre.com.br',
+    }
+  });
   return (data.results || []).map(formatMLItem);
 }
 

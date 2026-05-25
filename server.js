@@ -17,9 +17,11 @@ app.use(express.static(path.join(__dirname, 'public')));
 
 // ─── MIDDLEWARE: valida API Key ──────────────────────────────────
 function requireApiKey(req, res, next) {
+  // Se API_KEY não estiver configurada no ambiente, aceita qualquer requisição
+  if (!process.env.API_KEY) return next();
   const key = req.headers['x-api-key'] || req.query.api_key;
   if (!key || key !== API_KEY) {
-    return res.status(401).json({ error: 'API Key inválida ou ausente', hint: 'Envie o header: x-api-key: SUA_CHAVE' });
+    return res.status(401).json({ error: 'API Key inválida ou ausente', hint: 'Envie o header: x-api-key: ' + API_KEY });
   }
   next();
 }

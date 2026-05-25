@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>PrecoBom — Cotações Automáticas</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Sans:wght@400;500&display=swap" rel="stylesheet"/>
+<style>
+:root{--bg:#F4F1EC;--surface:#fff;--border:#DDD9D0;--text:#1A1915;--muted:#7A776E;--accent:#1A472A;--accent2:#2E7D45;--accent-bg:#E8F0EA;--danger:#C0392B;--danger-bg:#FCEBEB;--gold:#C4932A;--r:12px;--rsm:8px}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
+nav{background:var(--text);display:flex;align-items:center;justify-content:space-between;padding:0 2rem;height:56px;position:sticky;top:0;z-index:100}
+.logo{font-family:'Syne',sans-serif;font-weight:800;font-size:20px;color:#fff;letter-spacing:-.5px}
+.logo em{color:#4ADE80;font-style:normal}
+.pill{background:rgba(74,222,128,.14);color:#4ADE80;font-size:11px;padding:3px 10px;border-radius:99px}
+.tabs{display:flex;background:rgba(255,255,255,.1);border-radius:99px;padding:3px;margin-right:.5rem}
+.tab{padding:5px 16px;border-radius:99px;border:none;background:transparent;font-family:'DM Sans',sans-serif;font-size:12px;font-weight:500;color:rgba(255,255,255,.5);cursor:pointer;transition:all .2s}
+.tab.on{background:#fff;color:var(--text)}
+.nav-right{display:flex;align-items:center;gap:10px}
+.main{max-width:1000px;margin:0 auto;padding:2rem 1.5rem}
+
+/* API DOCS PANEL */
+.docs{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:1.5rem;margin-bottom:1.5rem}
+.docs h2{font-family:'Syne',sans-serif;font-size:17px;font-weight:700;margin-bottom:1rem}
+.endpoint{background:var(--bg);border-radius:var(--rsm);padding:.85rem 1rem;margin-bottom:.75rem;display:flex;align-items:flex-start;gap:10px}
+.method{font-size:11px;font-weight:700;padding:2px 8px;border-radius:4px;flex-shrink:0;margin-top:1px;letter-spacing:.04em}
+.method.post{background:#DCFCE7;color:#166534}
+.method.get{background:#DBEAFE;color:#1E40AF}
+.ep-path{font-family:monospace;font-size:13px;color:var(--text);font-weight:500}
+.ep-desc{font-size:12px;color:var(--muted);margin-top:2px}
+pre{background:var(--bg);border:1px solid var(--border);border-radius:var(--rsm);padding:1rem;font-size:12px;overflow-x:auto;line-height:1.6;margin-top:.75rem}
+.key-box{background:#FFF9C4;border:1px solid #EAB308;border-radius:var(--rsm);padding:.85rem 1rem;font-size:13px;margin-bottom:1.5rem;display:flex;align-items:center;gap:10px}
+.key-box code{font-family:monospace;font-size:13px;font-weight:700;color:#92400E;flex:1}
+
+/* MANUAL TEST */
+.test-box{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:1.5rem;margin-bottom:1.5rem}
+.test-box h2{font-family:'Syne',sans-serif;font-size:17px;font-weight:700;margin-bottom:1rem}
+.field{margin-bottom:12px}
+.field label{display:block;font-size:12px;font-weight:500;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:.35rem}
+.field input,.field textarea{width:100%;border:1.5px solid var(--border);border-radius:var(--rsm);padding:9px 12px;font-family:'DM Sans',sans-serif;font-size:14px;outline:none;transition:border-color .2s;color:var(--text);background:#fff}
+.field input:focus,.field textarea:focus{border-color:var(--accent)}
+.field textarea{min-height:70px;resize:vertical}
+.gobtn{background:var(--accent);color:#fff;border:none;border-radius:var(--rsm);padding:10px 22px;font-family:'Syne',sans-serif;font-size:14px;font-weight:700;cursor:pointer;transition:background .2s}
+.gobtn:hover{background:var(--accent2)}
+.gobtn:disabled{background:#ccc;cursor:not-allowed}
+.result-pre{background:var(--bg);border:1px solid var(--border);border-radius:var(--rsm);padding:1rem;font-size:12px;overflow-x:auto;line-height:1.6;margin-top:1rem;white-space:pre-wrap;word-break:break-all;max-height:420px;overflow-y:auto;display:none}
+
+/* DASHBOARD */
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-bottom:1.5rem}
+.stat{background:var(--surface);border:1px solid var(--border);border-radius:var(--rsm);padding:.85rem 1rem;text-align:center}
+.stat .val{font-family:'Syne',sans-serif;font-size:24px;font-weight:700;color:var(--text)}
+.stat .lbl{font-size:12px;color:var(--muted);margin-top:2px}
+.qtable{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);overflow:hidden}
+.qtable table{width:100%;border-collapse:collapse}
+.qtable th{background:var(--bg);font-size:11px;font-weight:500;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;padding:.6rem 1rem;text-align:left;border-bottom:1px solid var(--border)}
+.qtable td{padding:.75rem 1rem;font-size:13px;border-bottom:.5px solid var(--border);color:var(--text)}
+.qtable tr:last-child td{border-bottom:none}
+.qtable tr:hover td{background:var(--bg)}
+.status-badge{display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:500;padding:2px 8px;border-radius:99px}
+.s-done{background:var(--accent-bg);color:var(--accent)}
+.s-processing{background:#FFF9C4;color:#92400E}
+.s-error{background:var(--danger-bg);color:var(--danger)}
+.refresh-btn{background:var(--surface);border:1px solid var(--border);border-radius:var(--rsm);padding:6px 14px;font-size:13px;cursor:pointer;color:var(--muted)}
+.refresh-btn:hover{border-color:var(--accent);color:var(--accent)}
+.tbl-hdr{display:flex;align-items:center;justify-content:space-between;padding:1rem 1.25rem;border-bottom:1px solid var(--border)}
+.tbl-hdr h3{font-family:'Syne',sans-serif;font-size:15px;font-weight:700}
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="logo">Preco<em>Bom</em></div>
+  <div class="nav-right">
+    <div class="tabs">
+      <button class="tab on" onclick="showPanel('docs')">API Docs</button>
+      <button class="tab" onclick="showPanel('test')">Testar</button>
+      <button class="tab" onclick="showPanel('dash')">Dashboard</button>
+    </div>
+    <div class="pill">API v2</div>
+  </div>
+</nav>
+
+<div class="main">
+
+  <!-- API KEY BOX -->
+  <div class="key-box">
+    <span>🔑</span>
+    <div>
+      <strong>Sua API Key:</strong> Configure no Railway em Settings → Variables → <code>API_KEY</code>.
+      Em desenvolvimento: <code id="dev-key">precobom-dev-key-troque-em-producao</code>
+    </div>
+  </div>
+
+  <!-- DOCS PANEL -->
+  <div id="panel-docs">
+    <div class="docs">
+      <h2>Endpoints da API</h2>
+
+      <div class="endpoint">
+        <span class="method post">POST</span>
+        <div>
+          <div class="ep-path">/api/quote</div>
+          <div class="ep-desc">Inicia uma cotação automática. Retorna imediatamente e processa em background. Ideal para integração.</div>
+        </div>
+      </div>
+      <pre>{
+  // Headers obrigatórios:
+  "x-api-key": "sua-api-key",
+
+  // Body (JSON):
+  "requestId":  "SOLIC-001",          // ID da solicitação no seu sistema
+  "name":       "Nespresso Essenza",  // Nome do produto (opcional se tiver links)
+  "links":      ["https://www.mercadolivre.com.br/..."], // URLs (opcional)
+  "webhookUrl": "https://seu-sistema.com/webhook",       // Recebe o resultado pronto
+  "metadata":   { "solicitante": "Beatriz", "dept": "TI" } // Dados livres
+}</pre>
+      <pre>// Resposta imediata (202 Accepted):
+{
+  "quotationId": "uuid-gerado",
+  "status": "processing",
+  "pollUrl": "/api/quote/uuid-gerado"
+}</pre>
+      <pre>// Payload do webhook / resultado final:
+{
+  "quotationId": "...",
+  "requestId":   "SOLIC-001",
+  "status":      "done",
+  "productName": "Nespresso Essenza Mini Preta",
+  "metadata":    { "solicitante": "Beatriz" },
+  "summary": {
+    "bestPrice":   289.00,
+    "bestStore":   "Mercado Livre",
+    "bestUrl":     "https://...",
+    "savings":     64.00,
+    "totalOffers": 5
+  },
+  "results": [
+    {
+      "store":      "Mercado Livre",
+      "price":      289.00,
+      "oldPrice":   349.00,
+      "freeShip":   true,
+      "freight":    "Frete grátis",
+      "rating":     4.8,
+      "condition":  "new",
+      "url":        "https://...",
+      "thumbnail":  "https://..."
+    }
+  ],
+  "errors": []
+}</pre>
+
+      <div class="endpoint">
+        <span class="method get">GET</span>
+        <div>
+          <div class="ep-path">/api/quote/:id</div>
+          <div class="ep-desc">Consulta resultado de uma cotação por ID (polling alternativo ao webhook).</div>
+        </div>
+      </div>
+
+      <div class="endpoint">
+        <span class="method get">GET</span>
+        <div>
+          <div class="ep-path">/api/quote?limit=20</div>
+          <div class="ep-desc">Lista as últimas cotações (para dashboard/auditoria).</div>
+        </div>
+      </div>
+
+      <div class="endpoint">
+        <span class="method post">POST</span>
+        <div>
+          <div class="ep-path">/api/search</div>
+          <div class="ep-desc">Busca síncrona (aguarda resultado). Use para testes ou integrações simples.</div>
+        </div>
+      </div>
+
+      <div class="endpoint">
+        <span class="method get">GET</span>
+        <div>
+          <div class="ep-path">/api/health</div>
+          <div class="ep-desc">Health check — verifica se a API está rodando.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TEST PANEL -->
+  <div id="panel-test" style="display:none">
+    <div class="test-box">
+      <h2>Testar cotação agora</h2>
+      <div class="field">
+        <label>Nome do produto</label>
+        <input id="t-name" type="text" placeholder='Ex: "Nespresso Essenza Mini"'/>
+      </div>
+      <div class="field">
+        <label>Links (um por linha)</label>
+        <textarea id="t-links" placeholder="https://www.mercadolivre.com.br/..."></textarea>
+      </div>
+      <div class="field">
+        <label>Request ID (opcional)</label>
+        <input id="t-reqid" type="text" placeholder="SOLIC-001"/>
+      </div>
+      <div class="field">
+        <label>API Key</label>
+        <input id="t-key" type="text" value="precobom-dev-key-troque-em-producao"/>
+      </div>
+      <button class="gobtn" id="test-btn" onclick="runTest()">Executar cotação</button>
+      <pre id="test-result" class="result-pre"></pre>
+    </div>
+  </div>
+
+  <!-- DASH PANEL -->
+  <div id="panel-dash" style="display:none">
+    <div class="stats">
+      <div class="stat"><div class="val" id="d-total">—</div><div class="lbl">Total cotações</div></div>
+      <div class="stat"><div class="val" id="d-done">—</div><div class="lbl">Concluídas</div></div>
+      <div class="stat"><div class="val" id="d-proc">—</div><div class="lbl">Processando</div></div>
+      <div class="stat"><div class="val" id="d-uptime">—</div><div class="lbl">Uptime (s)</div></div>
+    </div>
+    <div class="qtable">
+      <div class="tbl-hdr">
+        <h3>Últimas cotações</h3>
+        <button class="refresh-btn" onclick="loadDash()">↻ Atualizar</button>
+      </div>
+      <table>
+        <thead><tr>
+          <th>ID / Request</th><th>Produto</th><th>Status</th>
+          <th>Melhor preço</th><th>Loja</th><th>Iniciado</th>
+        </tr></thead>
+        <tbody id="dash-tbody"><tr><td colspan="6" style="text-align:center;color:var(--muted);padding:2rem">Carregando...</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+
+<script>
+function showPanel(p) {
+  ['docs','test','dash'].forEach(id => {
+    document.getElementById('panel-'+id).style.display = id===p ? '' : 'none';
+  });
+  document.querySelectorAll('.tab').forEach((b,i) =>
+    b.classList.toggle('on', ['docs','test','dash'][i]===p));
+  if (p === 'dash') loadDash();
+}
+
+async function runTest() {
+  const name  = document.getElementById('t-name').value.trim();
+  const links = document.getElementById('t-links').value.trim().split('\n').map(l=>l.trim()).filter(Boolean);
+  const reqid = document.getElementById('t-reqid').value.trim() || ('TEST-'+Date.now());
+  const key   = document.getElementById('t-key').value.trim();
+  const pre   = document.getElementById('test-result');
+  const btn   = document.getElementById('test-btn');
+
+  if (!name && !links.length) { alert('Preencha o nome ou pelo menos um link.'); return; }
+
+  btn.disabled = true; btn.textContent = 'Buscando…';
+  pre.style.display = 'block';
+  pre.textContent = 'Aguardando resultado…';
+
+  try {
+    const r = await fetch('/api/search', {
+      method: 'POST',
+      headers: { 'Content-Type':'application/json', 'x-api-key': key },
+      body: JSON.stringify({ name, links, requestId: reqid })
+    });
+    const data = await r.json();
+    pre.textContent = JSON.stringify(data, null, 2);
+  } catch(e) {
+    pre.textContent = 'Erro: ' + e.message;
+  }
+  btn.disabled = false; btn.textContent = 'Executar cotação';
+}
+
+async function loadDash() {
+  const key = document.getElementById('t-key')?.value || 'precobom-dev-key-troque-em-producao';
+  try {
+    const [qRes, hRes] = await Promise.all([
+      fetch('/api/quote?limit=30', { headers: {'x-api-key': key} }),
+      fetch('/api/health')
+    ]);
+    const q = await qRes.json();
+    const h = await hRes.json();
+
+    const list = q.quotations || [];
+    document.getElementById('d-total').textContent = list.length;
+    document.getElementById('d-done').textContent  = list.filter(x=>x.status==='done').length;
+    document.getElementById('d-proc').textContent  = list.filter(x=>x.status==='processing').length;
+    document.getElementById('d-uptime').textContent = Math.round(h.uptime || 0);
+
+    const tbody = document.getElementById('dash-tbody');
+    if (!list.length) {
+      tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--muted);padding:2rem">Nenhuma cotação ainda. Faça um teste!</td></tr>';
+      return;
+    }
+    tbody.innerHTML = list.map(q => `
+      <tr>
+        <td style="font-family:monospace;font-size:12px">${(q.requestId||q.quotationId||'').substring(0,16)}</td>
+        <td style="max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${q.name||''}">${q.name||'—'}</td>
+        <td><span class="status-badge s-${q.status}">${q.status==='done'?'✓ Concluída':q.status==='processing'?'⏳ Processando':'✗ Erro'}</span></td>
+        <td>${q.bestPrice ? 'R$ '+Number(q.bestPrice).toFixed(2) : '—'}</td>
+        <td>${q.bestStore||'—'}</td>
+        <td style="font-size:12px;color:var(--muted)">${q.startedAt ? new Date(q.startedAt).toLocaleTimeString('pt-BR') : '—'}</td>
+      </tr>`).join('');
+  } catch(e) {
+    document.getElementById('dash-tbody').innerHTML =
+      `<tr><td colspan="6" style="color:var(--danger);padding:1rem">Erro ao carregar: ${e.message}</td></tr>`;
+  }
+}
+</script>
+</body>
+</html>

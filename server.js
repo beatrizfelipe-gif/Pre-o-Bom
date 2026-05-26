@@ -6,7 +6,8 @@ const path    = require('path');
 
 const app  = express();
 const PORT = process.env.PORT || 3000;
-const API_KEY = process.env.API_KEY || null;
+const API_KEY    = process.env.API_KEY    || null;
+const SERP_KEY   = process.env.SERP_KEY   || '7887f4e0c88eda7e60bfb46546997dee54f41318ef79b30316ffdbcdf9633402';
 
 app.use(cors());
 app.use(express.json());
@@ -22,7 +23,7 @@ function requireApiKey(req, res, next) {
   next();
 }
 
-// ─── CACHE ───────────────────────────────────────────────────────
+// ─── CACHE (5 min) ───────────────────────────────────────────────
 const cache = new Map();
 function getCache(key) {
   const h = cache.get(key);
@@ -33,151 +34,73 @@ function getCache(key) {
 function setCache(key, data) { cache.set(key, { data, ts: Date.now() }); }
 const quotations = new Map();
 
-// ─── BUSCA NO BUSCAPÉ (API pública) ─────────────────────────────
-async function searchBuscape(query) {
-  try {
-    const { data } = await axios.get('https://api.buscape.com.br/product/search', {
-      params: { q: query, page: 1, page_size: 6 },
-      headers: { 'User-Agent': 'Mozilla/5.0', 'Accept': 'application/json' },
-      timeout: 10000
-    });
-    return (data.products || []).map(p => ({
-      store: p.store?.name || 'Buscapé',
-      storeKey: 'buscape',
-      title: p.name,
-      price: p.price?.current,
-      oldPrice: p.price?.old || null,
-      currency: 'BRL',
-      freeShip: false,
-      freight: 'Ver no site',
-      freightCost: null,
-      rating: p.rating || null,
-      reviews: null,
-      condition: 'new',
-      thumbnail: p.image || null,
-      url: p.url,
-    })).filter(r => r.price > 0);
-  } catch { return []; }
-}
-
-// ─── BUSCA VIA GOOGLE SHOPPING SCRAPING ─────────────────────────
-async function searchGoogleShopping(query) {
-  try {
-    // Usa o endpoint público do Google Shopping
-    const url = `https://www.google.com/search?q=${encodeURIComponent(query + ' preço')}&tbm=shop&hl=pt-BR&gl=br&num=10`;
-    const { data } = await axios.get(url, {
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-        'Accept-Language': 'pt-BR,pt;q=0.9',
-        'Accept': 'text/html,application/xhtml+xml',
-      },
-      timeout: 12000
-    });
-
-    const results = [];
-    // Extrai preços do HTML do Google Shopping
-    const priceRegex = /R\$\s*([\d.,]+)/g;
-    const titleRegex = /class="[^"]*sh-dgr__content[^"]*"[^>]*>.*?<h3[^>]*>(.*?)<\/h3>/gs;
-    const storeRegex = /class="[^"]*aULzUe[^"]*"[^>]*>(.*?)<\/div>/g;
-
-    let priceMatch, i = 0;
-    const prices = [];
-    while ((priceMatch = priceRegex.exec(data)) !== null && i < 10) {
-      const val = parseFloat(priceMatch[1].replace(/\./g, '').replace(',', '.'));
-      if (val > 10) { prices.push(val); i++; }
-    }
-
-    return prices.slice(0, 6).map((price, idx) => ({
-      store: ['Mercado Livre', 'Amazon', 'Magalu', 'Americanas', 'Shopee', 'Casas Bahia'][idx] || 'Loja ' + (idx+1),
-      storeKey: ['mercadolivre','amazon','magalu','americanas','shopee','casasbahia'][idx] || 'other',
-      title: query,
-      price,
-      oldPrice: null,
-      currency: 'BRL',
-      freeShip: idx === 0,
-      freight: idx === 0 ? 'Frete grátis' : 'Ver no site',
-      freightCost: idx === 0 ? 0 : null,
-      rating: null,
-      reviews: null,
-      condition: 'new',
-      thumbnail: null,
-      url: `https://www.google.com/search?q=${encodeURIComponent(query)}&tbm=shop`,
-    }));
-  } catch { return []; }
-}
-
-// ─── BUSCA NO MERCADO LIVRE (com retry e headers rotativos) ─────
-const ML_HEADERS = [
-  { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120.0.0.0 Safari/537.36', 'Accept': 'application/json', 'Accept-Language': 'pt-BR,pt;q=0.9' },
-  { 'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 Safari/604.1', 'Accept': 'application/json', 'Accept-Language': 'pt-BR' },
-  { 'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 Chrome/119.0.0.0 Safari/537.36', 'Accept': 'application/json' },
-];
-
-async function searchML(query, limit = 8) {
-  const cacheKey = 'ml:' + query.toLowerCase().trim();
+// ─── SERP API: busca Google Shopping ─────────────────────────────
+async function searchSerpAPI(query) {
+  const cacheKey = 'serp:' + query.toLowerCase().trim();
   const cached = getCache(cacheKey);
   if (cached) return cached;
 
-  for (const headers of ML_HEADERS) {
-    try {
-      const { data } = await axios.get('https://api.mercadolibre.com/sites/MLB/search', {
-        params: { q: query, limit },
-        headers,
-        timeout: 12000,
-      });
-      if (!data.results) continue;
-      const results = data.results.map(item => ({
-        store: 'Mercado Livre', storeKey: 'mercadolivre',
-        title: item.title, price: item.price,
-        oldPrice: item.original_price || null, currency: 'BRL',
-        freeShip: item.shipping?.free_shipping || false,
-        freight: item.shipping?.free_shipping ? 'Frete grátis' : 'Calcular frete',
-        freightCost: item.shipping?.free_shipping ? 0 : null,
-        rating: item.reviews?.rating_average || null,
-        reviews: item.reviews?.total || null,
-        condition: item.condition || 'new',
-        thumbnail: item.thumbnail || null,
-        url: item.permalink, itemId: item.id,
-      }));
-      setCache(cacheKey, results);
-      return results;
-    } catch (e) {
-      console.log('ML tentativa falhou:', e.message);
-      await new Promise(r => setTimeout(r, 500));
-    }
-  }
-  return []; // retorna vazio em vez de erro
+  const { data } = await axios.get('https://serpapi.com/search', {
+    params: {
+      api_key:  SERP_KEY,
+      engine:   'google_shopping',
+      q:        query,
+      location: 'Brazil',
+      hl:       'pt',
+      gl:       'br',
+      num:      10,
+    },
+    timeout: 15000,
+  });
+
+  const items = data.shopping_results || [];
+  const results = items.slice(0, 8).map(item => {
+    // Extrai preço numérico do string "R$ 1.299,00"
+    const priceStr = item.price || '';
+    const priceNum = parseFloat(
+      priceStr.replace('R$','').replace(/\./g,'').replace(',','.').trim()
+    );
+    const freeShip = /gr[aá]tis/i.test(item.delivery || '');
+    return {
+      store:       item.source || 'Loja',
+      storeKey:    slugify(item.source || 'other'),
+      title:       item.title || query,
+      price:       isNaN(priceNum) ? null : priceNum,
+      oldPrice:    null,
+      currency:    'BRL',
+      freeShip,
+      freight:     item.delivery || 'Ver no site',
+      freightCost: freeShip ? 0 : null,
+      rating:      item.rating || null,
+      reviews:     item.reviews || null,
+      condition:   'new',
+      thumbnail:   item.thumbnail || null,
+      url:         item.link || item.product_link || '#',
+    };
+  }).filter(r => r.price && r.price > 0);
+
+  setCache(cacheKey, results);
+  return results;
 }
 
-async function searchMLById(itemId) {
-  const cacheKey = 'mlid:' + itemId;
-  const cached = getCache(cacheKey);
-  if (cached) return cached;
-  for (const headers of ML_HEADERS) {
-    try {
-      const { data: item } = await axios.get(`https://api.mercadolibre.com/items/${itemId}`, { headers, timeout: 12000 });
-      const freeShip = item.shipping?.free_shipping || false;
-      const result = [{ store: 'Mercado Livre', storeKey: 'mercadolivre', title: item.title, price: item.price, oldPrice: item.original_price || null, currency: 'BRL', freeShip, freight: freeShip ? 'Frete grátis' : 'Calcular frete', freightCost: freeShip ? 0 : null, rating: null, reviews: null, condition: item.condition || 'new', thumbnail: item.thumbnail?.replace('I.jpg','O.jpg') || null, url: item.permalink, itemId: item.id, brand: item.attributes?.find(a=>a.id==='BRAND')?.value_name||null, soldQty: item.sold_quantity||null }];
-      setCache(cacheKey, result);
-      return result;
-    } catch { await new Promise(r => setTimeout(r, 500)); }
-  }
-  return [];
+// ─── SERP API: busca por link (extrai produto e busca preços) ────
+async function searchByLink(url) {
+  // Extrai o nome do produto da URL para buscar
+  let query = '';
+  try {
+    const u = new URL(url);
+    // Mercado Livre: pega o slug da URL
+    const slug = u.pathname.split('/').filter(Boolean)[0] || '';
+    query = slug.replace(/-/g, ' ').replace(/\b(p|mlb\d+)\b/gi, '').trim();
+    if (!query) query = u.hostname;
+  } catch { query = url; }
+
+  if (!query) throw new Error('Não foi possível identificar o produto nesta URL');
+  return await searchSerpAPI(query);
 }
 
-function extractMLId(url) {
-  for (const p of [/item_id%3A(MLB\d+)/i,/item_id=(MLB\d+)/i,/\/(MLB\d+)/i,/(MLB\d+)/i]) {
-    const m = url.match(p); if (m) return m[1]||m[0];
-  }
-  return null;
-}
-
-function detectStore(url) {
-  if (/mercadolivre\.com\.br|mercadolibre\.com/i.test(url)) return 'mercadolivre';
-  if (/amazon\.com\.br/i.test(url)) return 'amazon';
-  if (/magazineluiza|magalu/i.test(url)) return 'magalu';
-  if (/americanas/i.test(url)) return 'americanas';
-  return 'other';
+function slugify(str) {
+  return str.toLowerCase().replace(/\s+/g,'-').replace(/[^\w-]/g,'').substring(0,20);
 }
 
 // ─── MOTOR PRINCIPAL ─────────────────────────────────────────────
@@ -185,46 +108,44 @@ async function runQuotation({ name, links, maxResults = 8 }) {
   const results = [], errors = [];
   let productName = name || '';
 
-  // Por links
+  // Busca por links
   if (links && links.length > 0) {
     for (const url of links.slice(0, 5)) {
-      const store = detectStore(url);
-      if (store === 'mercadolivre') {
-        const id = extractMLId(url);
-        if (!id) { errors.push({ url, store, error: 'ID não encontrado na URL' }); continue; }
-        const items = await searchMLById(id);
-        results.push(...items);
+      try {
+        const items = await searchByLink(url);
+        for (const r of items) {
+          if (!results.find(x => x.store === r.store)) results.push(r);
+        }
         if (!productName && items[0]) productName = items[0].title;
-      } else {
-        errors.push({ url, store, error: `Integração com "${store}" em breve.` });
+      } catch (err) {
+        errors.push({ url, error: err.message });
       }
     }
   }
 
-  // Por nome — tenta ML primeiro, Google Shopping como fallback
+  // Busca por nome
   if (name && name.trim()) {
-    const mlResults = await searchML(name, maxResults);
-    if (mlResults.length > 0) {
-      const existing = new Set(results.map(r => r.itemId));
-      for (const r of mlResults) if (!existing.has(r.itemId)) results.push(r);
-      if (!productName && mlResults[0]) productName = mlResults[0].title;
-    } else {
-      // Fallback: Google Shopping
-      console.log('ML falhou, tentando Google Shopping...');
-      const gsResults = await searchGoogleShopping(name);
-      results.push(...gsResults);
-      if (!productName) productName = name;
-      if (gsResults.length > 0) {
-        console.log('Google Shopping retornou', gsResults.length, 'resultados');
-      } else {
-        errors.push({ store: 'mercadolivre', error: 'API temporariamente indisponível. Tente novamente em instantes.' });
+    try {
+      const serpResults = await searchSerpAPI(name);
+      for (const r of serpResults) {
+        if (!results.find(x => x.store === r.store)) results.push(r);
       }
+      if (!productName && serpResults[0]) productName = serpResults[0].title;
+    } catch (err) {
+      errors.push({ store: 'google_shopping', error: 'Erro na busca: ' + err.message });
     }
   }
 
-  results.sort((a, b) => (a.price||999999) - (b.price||999999));
+  results.sort((a, b) => (a.price || 999999) - (b.price || 999999));
+
   const best = results[0] || null;
-  const summary = best ? { bestPrice: best.price, bestStore: best.store, bestUrl: best.url, savings: results.length > 1 ? results[results.length-1].price - best.price : 0, totalOffers: results.length } : null;
+  const summary = best ? {
+    bestPrice:   best.price,
+    bestStore:   best.store,
+    bestUrl:     best.url,
+    savings:     results.length > 1 ? results[results.length-1].price - best.price : 0,
+    totalOffers: results.length,
+  } : null;
 
   return { productName, summary, results, errors };
 }
@@ -240,7 +161,10 @@ app.post('/api/quote', requireApiKey, async (req, res) => {
   runQuotation({ name, links, maxResults }).then(async result => {
     const payload = { quotationId, requestId, status: 'done', startedAt, finishedAt: new Date().toISOString(), name, links, metadata, ...result };
     quotations.set(quotationId, payload);
-    if (webhookUrl) { try { await axios.post(webhookUrl, payload, { timeout: 10000 }); } catch(e) { console.error('Webhook:', e.message); } }
+    if (webhookUrl) {
+      try { await axios.post(webhookUrl, payload, { timeout: 10000 }); }
+      catch(e) { console.error('Webhook:', e.message); }
+    }
   }).catch(err => quotations.set(quotationId, { quotationId, requestId, status: 'error', startedAt, error: err.message }));
 });
 
@@ -251,7 +175,9 @@ app.get('/api/quote/:id', requireApiKey, (req, res) => {
 });
 
 app.get('/api/quote', requireApiKey, (req, res) => {
-  const list = [...quotations.values()].sort((a,b) => new Date(b.startedAt)-new Date(a.startedAt)).slice(0, parseInt(req.query.limit)||20)
+  const list = [...quotations.values()]
+    .sort((a,b) => new Date(b.startedAt)-new Date(a.startedAt))
+    .slice(0, parseInt(req.query.limit)||20)
     .map(q => ({ quotationId: q.quotationId, requestId: q.requestId, status: q.status, name: q.name||q.productName, startedAt: q.startedAt, bestPrice: q.summary?.bestPrice, bestStore: q.summary?.bestStore, totalOffers: q.summary?.totalOffers }));
   res.json({ total: list.length, quotations: list });
 });
@@ -265,8 +191,12 @@ app.post('/api/search', requireApiKey, async (req, res) => {
   } catch(err) { res.status(500).json({ error: err.message }); }
 });
 
-app.get('/api/health', (req, res) => res.json({ status: 'ok', uptime: Math.round(process.uptime()), quotations: quotations.size, cache: cache.size }));
+app.get('/api/health', (req, res) => res.json({
+  status: 'ok', uptime: Math.round(process.uptime()),
+  quotations: quotations.size, cache: cache.size,
+  serp: SERP_KEY ? 'configurada' : 'ausente'
+}));
 
 app.get('*', (req, res) => res.sendFile(path.join(__dirname, 'public', 'index.html')));
 
-app.listen(PORT, () => console.log(`PrecoBom na porta ${PORT} | API_KEY: ${API_KEY||'desativada'}`));
+app.listen(PORT, () => console.log(`PrecoBom na porta ${PORT} | SerpAPI: configurada`));

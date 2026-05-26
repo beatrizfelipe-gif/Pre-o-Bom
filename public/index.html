@@ -3,310 +3,486 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
-<title>PrecoBom — Cotações Automáticas</title>
+<title>PrecoBom — Comparador de Preços</title>
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Sans:wght@400;500&display=swap" rel="stylesheet"/>
 <style>
-:root{--bg:#F4F1EC;--surface:#fff;--border:#DDD9D0;--text:#1A1915;--muted:#7A776E;--accent:#1A472A;--accent2:#2E7D45;--accent-bg:#E8F0EA;--danger:#C0392B;--danger-bg:#FCEBEB;--gold:#C4932A;--r:12px;--rsm:8px}
+:root{
+  --bg:#F4F1EC;--surface:#fff;--border:#DDD9D0;--text:#1A1915;--muted:#7A776E;
+  --accent:#1A472A;--accent2:#2E7D45;--accent-bg:#E8F0EA;
+  --danger:#C0392B;--danger-bg:#FCEBEB;
+  --gold:#C4932A;--gold-bg:#FBF3E0;
+  --r:14px;--rsm:9px;
+  --sh:0 2px 12px rgba(0,0,0,.06);--shmd:0 8px 32px rgba(0,0,0,.10);--shxl:0 20px 60px rgba(0,0,0,.13)
+}
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
-nav{background:var(--text);display:flex;align-items:center;justify-content:space-between;padding:0 2rem;height:56px;position:sticky;top:0;z-index:100}
-.logo{font-family:'Syne',sans-serif;font-weight:800;font-size:20px;color:#fff;letter-spacing:-.5px}
+
+/* NAV */
+nav{background:var(--text);display:flex;align-items:center;justify-content:space-between;padding:0 2rem;height:58px;position:sticky;top:0;z-index:100;box-shadow:0 1px 0 rgba(255,255,255,.07)}
+.logo{font-family:'Syne',sans-serif;font-weight:800;font-size:21px;color:#fff;letter-spacing:-.5px;text-decoration:none}
 .logo em{color:#4ADE80;font-style:normal}
-.pill{background:rgba(74,222,128,.14);color:#4ADE80;font-size:11px;padding:3px 10px;border-radius:99px}
-.tabs{display:flex;background:rgba(255,255,255,.1);border-radius:99px;padding:3px;margin-right:.5rem}
-.tab{padding:5px 16px;border-radius:99px;border:none;background:transparent;font-family:'DM Sans',sans-serif;font-size:12px;font-weight:500;color:rgba(255,255,255,.5);cursor:pointer;transition:all .2s}
-.tab.on{background:#fff;color:var(--text)}
 .nav-right{display:flex;align-items:center;gap:10px}
-.main{max-width:1000px;margin:0 auto;padding:2rem 1.5rem}
+.nav-pill{background:rgba(74,222,128,.14);color:#4ADE80;font-size:11px;font-weight:500;padding:3px 10px;border-radius:99px;letter-spacing:.04em}
+.nav-api{color:rgba(255,255,255,.4);font-size:12px;cursor:pointer;text-decoration:none;transition:color .2s}
+.nav-api:hover{color:#fff}
 
-/* API DOCS PANEL */
-.docs{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:1.5rem;margin-bottom:1.5rem}
-.docs h2{font-family:'Syne',sans-serif;font-size:17px;font-weight:700;margin-bottom:1rem}
-.endpoint{background:var(--bg);border-radius:var(--rsm);padding:.85rem 1rem;margin-bottom:.75rem;display:flex;align-items:flex-start;gap:10px}
-.method{font-size:11px;font-weight:700;padding:2px 8px;border-radius:4px;flex-shrink:0;margin-top:1px;letter-spacing:.04em}
-.method.post{background:#DCFCE7;color:#166534}
-.method.get{background:#DBEAFE;color:#1E40AF}
-.ep-path{font-family:monospace;font-size:13px;color:var(--text);font-weight:500}
-.ep-desc{font-size:12px;color:var(--muted);margin-top:2px}
-pre{background:var(--bg);border:1px solid var(--border);border-radius:var(--rsm);padding:1rem;font-size:12px;overflow-x:auto;line-height:1.6;margin-top:.75rem}
-.key-box{background:#FFF9C4;border:1px solid #EAB308;border-radius:var(--rsm);padding:.85rem 1rem;font-size:13px;margin-bottom:1.5rem;display:flex;align-items:center;gap:10px}
-.key-box code{font-family:monospace;font-size:13px;font-weight:700;color:#92400E;flex:1}
+/* HERO */
+.hero{background:var(--text);padding:2.75rem 1.5rem 3.25rem;text-align:center;position:relative;overflow:hidden}
+.hero::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse at 60% 0%, rgba(74,222,128,.08) 0%, transparent 70%);pointer-events:none}
+.hero-eyebrow{display:inline-flex;align-items:center;gap:6px;background:rgba(74,222,128,.12);color:#4ADE80;font-size:11px;font-weight:500;letter-spacing:.08em;text-transform:uppercase;padding:4px 12px;border-radius:99px;margin-bottom:1rem}
+.hero h1{font-family:'Syne',sans-serif;font-size:clamp(2rem,5vw,3.2rem);font-weight:800;color:#fff;letter-spacing:-1.5px;line-height:1.08;margin-bottom:.6rem}
+.hero h1 em{color:#4ADE80;font-style:normal}
+.hero p{color:rgba(255,255,255,.45);font-size:15px;line-height:1.65;max-width:420px;margin:0 auto 2rem}
 
-/* MANUAL TEST */
-.test-box{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:1.5rem;margin-bottom:1.5rem}
-.test-box h2{font-family:'Syne',sans-serif;font-size:17px;font-weight:700;margin-bottom:1rem}
-.field{margin-bottom:12px}
-.field label{display:block;font-size:12px;font-weight:500;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:.35rem}
-.field input,.field textarea{width:100%;border:1.5px solid var(--border);border-radius:var(--rsm);padding:9px 12px;font-family:'DM Sans',sans-serif;font-size:14px;outline:none;transition:border-color .2s;color:var(--text);background:#fff}
-.field input:focus,.field textarea:focus{border-color:var(--accent)}
-.field textarea{min-height:70px;resize:vertical}
-.gobtn{background:var(--accent);color:#fff;border:none;border-radius:var(--rsm);padding:10px 22px;font-family:'Syne',sans-serif;font-size:14px;font-weight:700;cursor:pointer;transition:background .2s}
-.gobtn:hover{background:var(--accent2)}
-.gobtn:disabled{background:#ccc;cursor:not-allowed}
-.result-pre{background:var(--bg);border:1px solid var(--border);border-radius:var(--rsm);padding:1rem;font-size:12px;overflow-x:auto;line-height:1.6;margin-top:1rem;white-space:pre-wrap;word-break:break-all;max-height:420px;overflow-y:auto;display:none}
+/* TABS */
+.tab-wrap{display:inline-flex;background:rgba(255,255,255,.08);border-radius:99px;padding:3px;margin-bottom:1.5rem;border:1px solid rgba(255,255,255,.06)}
+.tab{padding:7px 22px;border-radius:99px;border:none;background:transparent;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:500;color:rgba(255,255,255,.45);cursor:pointer;transition:all .2s;display:flex;align-items:center;gap:6px}
+.tab.on{background:#fff;color:var(--text)}
 
-/* DASHBOARD */
-.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-bottom:1.5rem}
-.stat{background:var(--surface);border:1px solid var(--border);border-radius:var(--rsm);padding:.85rem 1rem;text-align:center}
-.stat .val{font-family:'Syne',sans-serif;font-size:24px;font-weight:700;color:var(--text)}
-.stat .lbl{font-size:12px;color:var(--muted);margin-top:2px}
-.qtable{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);overflow:hidden}
-.qtable table{width:100%;border-collapse:collapse}
-.qtable th{background:var(--bg);font-size:11px;font-weight:500;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;padding:.6rem 1rem;text-align:left;border-bottom:1px solid var(--border)}
-.qtable td{padding:.75rem 1rem;font-size:13px;border-bottom:.5px solid var(--border);color:var(--text)}
-.qtable tr:last-child td{border-bottom:none}
-.qtable tr:hover td{background:var(--bg)}
-.status-badge{display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:500;padding:2px 8px;border-radius:99px}
-.s-done{background:var(--accent-bg);color:var(--accent)}
-.s-processing{background:#FFF9C4;color:#92400E}
-.s-error{background:var(--danger-bg);color:var(--danger)}
-.refresh-btn{background:var(--surface);border:1px solid var(--border);border-radius:var(--rsm);padding:6px 14px;font-size:13px;cursor:pointer;color:var(--muted)}
-.refresh-btn:hover{border-color:var(--accent);color:var(--accent)}
-.tbl-hdr{display:flex;align-items:center;justify-content:space-between;padding:1rem 1.25rem;border-bottom:1px solid var(--border)}
-.tbl-hdr h3{font-family:'Syne',sans-serif;font-size:15px;font-weight:700}
+/* SEARCH PANELS */
+.search-wrap{max-width:700px;margin:0 auto}
+.panel{display:none}.panel.on{display:block}
+.sbox{background:#fff;border-radius:var(--r);padding:1.25rem;box-shadow:var(--shxl)}
+.srow{display:flex;gap:8px;flex-wrap:wrap}
+.sinput{flex:1;min-width:200px;border:1.5px solid var(--border);border-radius:var(--rsm);padding:11px 15px;font-family:'DM Sans',sans-serif;font-size:14px;outline:none;transition:border-color .2s;color:var(--text);background:#fff}
+.sinput:focus{border-color:var(--accent)}
+.sinput::placeholder{color:#B8B4AC}
+.gobtn{background:var(--accent);color:#fff;border:none;border-radius:var(--rsm);padding:11px 24px;font-family:'Syne',sans-serif;font-size:14px;font-weight:700;cursor:pointer;white-space:nowrap;transition:all .2s;display:flex;align-items:center;gap:7px;letter-spacing:.02em}
+.gobtn:hover{background:var(--accent2);transform:translateY(-1px)}
+.gobtn:disabled{background:#ccc;cursor:not-allowed;transform:none}
+.lbl{font-size:11px;font-weight:500;color:var(--muted);text-transform:uppercase;letter-spacing:.07em;margin-bottom:.5rem}
+.ltags{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:8px;min-height:2px}
+.ltag{display:inline-flex;align-items:center;gap:5px;background:var(--bg);border:1px solid var(--border);border-radius:99px;padding:3px 10px 3px 8px;font-size:12px;color:var(--muted)}
+.ltag .dot{width:7px;height:7px;border-radius:50%;background:var(--accent);flex-shrink:0}
+.ltag button{background:none;border:none;cursor:pointer;color:#ccc;font-size:13px;line-height:1;padding:0 1px;margin-left:2px}
+.ltag button:hover{color:var(--danger)}
+.lrow{display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap}
+.linput{flex:1;min-width:180px;border:1.5px solid var(--border);border-radius:var(--rsm);padding:10px 14px;font-family:'DM Sans',sans-serif;font-size:13px;outline:none;transition:border-color .2s;color:var(--text)}
+.linput:focus{border-color:var(--accent)}
+.linput::placeholder{color:#B8B4AC}
+.addbtn{background:var(--bg);border:1.5px solid var(--border);border-radius:var(--rsm);padding:10px 15px;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:500;color:var(--muted);cursor:pointer;transition:all .18s;white-space:nowrap}
+.addbtn:hover{border-color:var(--accent);color:var(--accent)}
+.cmpbtn{width:100%;background:var(--accent);color:#fff;border:none;border-radius:var(--rsm);padding:12px;font-family:'Syne',sans-serif;font-size:14px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:7px;transition:all .2s;letter-spacing:.02em}
+.cmpbtn:hover{background:var(--accent2)}
+.cmpbtn:disabled{background:#ccc;cursor:not-allowed}
+
+.stores{display:flex;align-items:center;gap:6px;flex-wrap:wrap;justify-content:center;margin-top:12px}
+.stores span{font-size:11px;color:rgba(255,255,255,.3)}
+.sbadge{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:99px;padding:2px 9px;font-size:11px;color:rgba(255,255,255,.45)}
+
+/* MAIN */
+.main{max-width:1020px;margin:0 auto;padding:2.25rem 1.5rem 5rem}
+
+/* STATUS */
+.sbar{display:flex;align-items:center;gap:10px;padding:.9rem 1.25rem;border-radius:var(--rsm);font-size:14px;margin-bottom:1.5rem;border:1px solid}
+.sbar.loading{border-color:#E8CC7A;background:var(--gold-bg);color:#7A5A0A}
+.sbar.ok{border-color:#86EFAC;background:var(--accent-bg);color:var(--accent)}
+.sbar.err{border-color:#FCA5A5;background:var(--danger-bg);color:var(--danger)}
+.spin{width:16px;height:16px;border:2.5px solid currentColor;border-top-color:transparent;border-radius:50%;animation:sp .7s linear infinite;flex-shrink:0}
+@keyframes sp{to{transform:rotate(360deg)}}
+
+/* PRODUCT HEADER */
+.phdr{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:1.5rem;margin-bottom:1.5rem;display:flex;gap:1.25rem;align-items:center;flex-wrap:wrap;box-shadow:var(--sh)}
+.pthumb{width:80px;height:80px;object-fit:contain;border-radius:10px;border:1px solid var(--border);background:#fafafa;flex-shrink:0}
+.picon{width:80px;height:80px;background:var(--bg);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:32px;flex-shrink:0;border:1px solid var(--border)}
+.pinfo{flex:1}
+.pinfo .pmeta{font-size:12px;color:var(--muted);margin-bottom:.3rem;text-transform:uppercase;letter-spacing:.05em}
+.pinfo h2{font-family:'Syne',sans-serif;font-size:17px;font-weight:700;line-height:1.3;margin-bottom:.5rem}
+.bestchip{display:inline-flex;align-items:center;gap:5px;background:var(--accent-bg);color:var(--accent);font-size:13px;font-weight:500;padding:4px 12px;border-radius:99px}
+
+/* SECTION HEADER */
+.sechdr{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:1rem}
+.sechdr h2{font-family:'Syne',sans-serif;font-size:17px;font-weight:700}
+.sechdr span{font-size:13px;color:var(--muted)}
+
+/* CARDS */
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(215px,1fr));gap:14px;margin-bottom:2rem}
+.card{background:var(--surface);border:1.5px solid var(--border);border-radius:var(--r);padding:1.25rem;display:flex;flex-direction:column;gap:.5rem;transition:box-shadow .2s,transform .18s,border-color .2s;animation:fu .4s ease both;cursor:default;position:relative}
+@keyframes fu{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
+.card:hover{box-shadow:var(--shmd);transform:translateY(-3px)}
+.card.best{border-color:var(--accent2);border-width:2px;box-shadow:0 0 0 4px rgba(46,125,69,.07)}
+.card.err-card{opacity:.5;border-style:dashed}
+.best-tag{background:var(--accent);color:#fff;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;padding:3px 10px;border-radius:99px;align-self:flex-start}
+.c-store{display:flex;align-items:center;gap:9px}
+.c-av{width:34px;height:34px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0;font-family:'Syne',sans-serif}
+.c-sname{font-size:13px;font-weight:500;color:var(--text)}
+.c-ssub{font-size:11px;color:var(--muted)}
+.c-thumb{width:100%;height:110px;object-fit:contain;border-radius:8px;background:var(--bg);margin:.25rem 0}
+.c-title{font-size:12px;color:var(--muted);line-height:1.4;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.c-price{font-family:'Syne',sans-serif;font-size:28px;font-weight:800;letter-spacing:-1px;line-height:1;color:var(--text)}
+.c-old{font-size:12px;color:var(--muted);text-decoration:line-through}
+.c-ship{font-size:12px;color:var(--muted);display:flex;align-items:center;gap:4px}
+.c-ship.free{color:var(--accent2);font-weight:500}
+.c-rat{font-size:11px;color:var(--muted);display:flex;align-items:center;gap:3px}
+.c-rat .stars{color:var(--gold)}
+.c-diff{font-size:12px;font-weight:500;padding:3px 9px;border-radius:5px;align-self:flex-start}
+.dok{background:var(--accent-bg);color:var(--accent)}
+.dbad{background:var(--danger-bg);color:var(--danger)}
+.c-btn{display:block;text-align:center;padding:9px;border-radius:var(--rsm);border:1.5px solid var(--border);background:transparent;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:500;color:var(--text);cursor:pointer;text-decoration:none;transition:all .18s;margin-top:auto}
+.c-btn:hover{background:var(--text);color:#fff;border-color:var(--text)}
+.card.best .c-btn{background:var(--accent);color:#fff;border-color:var(--accent)}
+.card.best .c-btn:hover{background:var(--accent2)}
+
+/* BAR CHART */
+.chart-wrap{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:1.5rem;margin-bottom:2rem;box-shadow:var(--sh)}
+.chart-hdr{font-family:'Syne',sans-serif;font-size:15px;font-weight:700;margin-bottom:1.25rem;display:flex;justify-content:space-between;align-items:center}
+.chart-hdr span{font-family:'DM Sans',sans-serif;font-size:12px;font-weight:400;color:var(--muted)}
+.brow{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+.blab{font-size:12px;color:var(--muted);width:110px;flex-shrink:0;text-align:right;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.btrack{flex:1;background:var(--bg);border-radius:5px;height:30px;overflow:hidden}
+.bfill{height:100%;border-radius:5px;display:flex;align-items:center;padding-left:10px;font-family:'Syne',sans-serif;font-size:12px;font-weight:700;width:0;transition:width 1.1s cubic-bezier(.4,0,.2,1)}
+.bfill.b0{background:linear-gradient(90deg,#1A472A,#4ADE80);color:#fff}
+.bfill.bn{background:#E2DED7;color:var(--muted)}
+.bsave{font-size:11px;width:64px;flex-shrink:0;text-align:right;font-weight:500}
+
+/* SUMMARY BOX */
+.summary-box{background:var(--text);border-radius:var(--r);padding:1.5rem;margin-bottom:2rem;display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:1rem}
+.sum-item{text-align:center}
+.sum-val{font-family:'Syne',sans-serif;font-size:22px;font-weight:800;color:#fff;letter-spacing:-.5px}
+.sum-val.green{color:#4ADE80}
+.sum-val.gold{color:#FCD34D}
+.sum-lbl{font-size:11px;color:rgba(255,255,255,.4);margin-top:3px;text-transform:uppercase;letter-spacing:.06em}
+
+/* TRENDING */
+.trending-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(175px,1fr));gap:10px;margin-bottom:.5rem}
+.tcard{background:var(--surface);border:1px solid var(--border);border-radius:var(--rsm);padding:.85rem 1rem;display:flex;align-items:center;gap:10px;cursor:pointer;transition:all .18s}
+.tcard:hover{box-shadow:var(--sh);border-color:#C8C4BA;transform:translateY(-1px)}
+.tico{font-size:22px;flex-shrink:0}
+.tname{font-size:13px;font-weight:500;line-height:1.3;margin-bottom:1px;color:var(--text)}
+.tmeta{font-size:11px;color:var(--muted)}
+
+/* FOOTER */
+footer{background:var(--text);color:rgba(255,255,255,.35);text-align:center;padding:2rem;font-size:13px;margin-top:auto}
+footer strong{color:rgba(255,255,255,.6)}
+
+@media(max-width:600px){
+  nav{padding:0 1rem}
+  .hero{padding:2rem 1rem 2.5rem}
+  .srow,.lrow{flex-direction:column}
+  .phdr{flex-direction:column;align-items:flex-start}
+  .summary-box{grid-template-columns:repeat(2,1fr)}
+}
 </style>
 </head>
 <body>
 
 <nav>
-  <div class="logo">Preco<em>Bom</em></div>
+  <a class="logo" href="#">Preco<em>Bom</em></a>
   <div class="nav-right">
-    <div class="tabs">
-      <button class="tab on" onclick="showPanel('docs')">API Docs</button>
-      <button class="tab" onclick="showPanel('test')">Testar</button>
-      <button class="tab" onclick="showPanel('dash')">Dashboard</button>
-    </div>
-    <div class="pill">API v2</div>
+    <a class="nav-api" href="#" onclick="showApiDocs()">API Docs</a>
+    <div class="nav-pill">Google Shopping · Tempo real</div>
   </div>
 </nav>
 
+<section class="hero">
+  <div class="hero-eyebrow">
+    <svg width="7" height="7" viewBox="0 0 7 7" fill="currentColor"><circle cx="3.5" cy="3.5" r="3.5"/></svg>
+    Comparação automática em tempo real
+  </div>
+  <h1>Compare preços e<br><em>economize de verdade</em></h1>
+  <p>Busque pelo nome do produto ou cole o link de qualquer loja. Comparamos automaticamente em dezenas de lojas.</p>
+
+  <div class="tab-wrap">
+    <button class="tab on" onclick="switchTab('name')">
+      <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+      Busca por nome
+    </button>
+    <button class="tab" onclick="switchTab('link')">
+      <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+      Busca por link
+    </button>
+  </div>
+
+  <div class="search-wrap">
+    <div class="panel on" id="panel-name">
+      <div class="sbox">
+        <div class="srow">
+          <input class="sinput" id="name-input" type="text"
+            placeholder='Ex: "Nespresso Essenza Mini", "iPhone 15 128GB"...'/>
+          <button class="gobtn" id="name-btn" onclick="searchName()">
+            <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+            Comparar
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel" id="panel-link">
+      <div class="sbox">
+        <div class="lbl">Links dos produtos (até 5)</div>
+        <div class="ltags" id="ltags"></div>
+        <div class="lrow">
+          <input class="linput" id="link-input" type="url"
+            placeholder="Cole o link — mercadolivre.com.br, amazon.com.br..."/>
+          <button class="addbtn" onclick="addLink()">+ Adicionar</button>
+        </div>
+        <button class="cmpbtn" id="link-btn" onclick="searchLinks()" disabled>
+          <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+          Comparar preços
+        </button>
+      </div>
+    </div>
+
+    <div class="stores">
+      <span>Busca em:</span>
+      <div class="sbadge">Mercado Livre</div>
+      <div class="sbadge">Amazon</div>
+      <div class="sbadge">Magalu</div>
+      <div class="sbadge">Americanas</div>
+      <div class="sbadge">iPlace</div>
+      <div class="sbadge">+ outras</div>
+    </div>
+  </div>
+</section>
+
 <div class="main">
+  <div id="status-wrap"></div>
+  <div id="results"></div>
 
-  <!-- API KEY BOX -->
-  <div class="key-box">
-    <span>🔑</span>
-    <div>
-      <strong>Sua API Key:</strong> Configure no Railway em Settings → Variables → <code>API_KEY</code>.
-      API Key ativa: <code id="dev-key">precobom-2024-beatriz</code>
+  <div id="default-section">
+    <div class="sechdr"><h2>Buscas populares</h2><span>Clique para comparar agora</span></div>
+    <div class="trending-grid">
+      <div class="tcard" onclick="quick('iPhone 15 128GB')"><span class="tico">📱</span><div><div class="tname">iPhone 15 128GB</div><div class="tmeta">Apple · Smartphone</div></div></div>
+      <div class="tcard" onclick="quick('Nespresso Essenza Mini')"><span class="tico">☕</span><div><div class="tname">Nespresso Essenza</div><div class="tmeta">Cafeteira</div></div></div>
+      <div class="tcard" onclick="quick('Samsung Galaxy S24 256GB')"><span class="tico">📱</span><div><div class="tname">Galaxy S24 256GB</div><div class="tmeta">Samsung</div></div></div>
+      <div class="tcard" onclick="quick('AirPods Pro 2 geração')"><span class="tico">🎧</span><div><div class="tname">AirPods Pro 2</div><div class="tmeta">Apple · Áudio</div></div></div>
+      <div class="tcard" onclick="quick('Cadeira Gamer ergonomica reclinavel')"><span class="tico">🪑</span><div><div class="tname">Cadeira Gamer</div><div class="tmeta">Escritório</div></div></div>
+      <div class="tcard" onclick="quick('PlayStation 5 Slim')"><span class="tico">🎮</span><div><div class="tname">PlayStation 5 Slim</div><div class="tmeta">Sony · Games</div></div></div>
+      <div class="tcard" onclick="quick('Smart TV 55 polegadas 4K')"><span class="tico">📺</span><div><div class="tname">Smart TV 55" 4K</div><div class="tmeta">Televisores</div></div></div>
+      <div class="tcard" onclick="quick('Notebook Dell i5 SSD')"><span class="tico">💻</span><div><div class="tname">Notebook Dell i5</div><div class="tmeta">Informática</div></div></div>
     </div>
   </div>
-
-  <!-- DOCS PANEL -->
-  <div id="panel-docs">
-    <div class="docs">
-      <h2>Endpoints da API</h2>
-
-      <div class="endpoint">
-        <span class="method post">POST</span>
-        <div>
-          <div class="ep-path">/api/quote</div>
-          <div class="ep-desc">Inicia uma cotação automática. Retorna imediatamente e processa em background. Ideal para integração.</div>
-        </div>
-      </div>
-      <pre>{
-  // Headers obrigatórios:
-  "x-api-key": "sua-api-key",
-
-  // Body (JSON):
-  "requestId":  "SOLIC-001",          // ID da solicitação no seu sistema
-  "name":       "Nespresso Essenza",  // Nome do produto (opcional se tiver links)
-  "links":      ["https://www.mercadolivre.com.br/..."], // URLs (opcional)
-  "webhookUrl": "https://seu-sistema.com/webhook",       // Recebe o resultado pronto
-  "metadata":   { "solicitante": "Beatriz", "dept": "TI" } // Dados livres
-}</pre>
-      <pre>// Resposta imediata (202 Accepted):
-{
-  "quotationId": "uuid-gerado",
-  "status": "processing",
-  "pollUrl": "/api/quote/uuid-gerado"
-}</pre>
-      <pre>// Payload do webhook / resultado final:
-{
-  "quotationId": "...",
-  "requestId":   "SOLIC-001",
-  "status":      "done",
-  "productName": "Nespresso Essenza Mini Preta",
-  "metadata":    { "solicitante": "Beatriz" },
-  "summary": {
-    "bestPrice":   289.00,
-    "bestStore":   "Mercado Livre",
-    "bestUrl":     "https://...",
-    "savings":     64.00,
-    "totalOffers": 5
-  },
-  "results": [
-    {
-      "store":      "Mercado Livre",
-      "price":      289.00,
-      "oldPrice":   349.00,
-      "freeShip":   true,
-      "freight":    "Frete grátis",
-      "rating":     4.8,
-      "condition":  "new",
-      "url":        "https://...",
-      "thumbnail":  "https://..."
-    }
-  ],
-  "errors": []
-}</pre>
-
-      <div class="endpoint">
-        <span class="method get">GET</span>
-        <div>
-          <div class="ep-path">/api/quote/:id</div>
-          <div class="ep-desc">Consulta resultado de uma cotação por ID (polling alternativo ao webhook).</div>
-        </div>
-      </div>
-
-      <div class="endpoint">
-        <span class="method get">GET</span>
-        <div>
-          <div class="ep-path">/api/quote?limit=20</div>
-          <div class="ep-desc">Lista as últimas cotações (para dashboard/auditoria).</div>
-        </div>
-      </div>
-
-      <div class="endpoint">
-        <span class="method post">POST</span>
-        <div>
-          <div class="ep-path">/api/search</div>
-          <div class="ep-desc">Busca síncrona (aguarda resultado). Use para testes ou integrações simples.</div>
-        </div>
-      </div>
-
-      <div class="endpoint">
-        <span class="method get">GET</span>
-        <div>
-          <div class="ep-path">/api/health</div>
-          <div class="ep-desc">Health check — verifica se a API está rodando.</div>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- TEST PANEL -->
-  <div id="panel-test" style="display:none">
-    <div class="test-box">
-      <h2>Testar cotação agora</h2>
-      <div class="field">
-        <label>Nome do produto</label>
-        <input id="t-name" type="text" placeholder='Ex: "Nespresso Essenza Mini"'/>
-      </div>
-      <div class="field">
-        <label>Links (um por linha)</label>
-        <textarea id="t-links" placeholder="https://www.mercadolivre.com.br/..."></textarea>
-      </div>
-      <div class="field">
-        <label>Request ID (opcional)</label>
-        <input id="t-reqid" type="text" placeholder="SOLIC-001"/>
-      </div>
-      <div class="field">
-        <label>API Key</label>
-        <input id="t-key" type="text" value="precobom-2024-beatriz"/>
-      </div>
-      <button class="gobtn" id="test-btn" onclick="runTest()">Executar cotação</button>
-      <pre id="test-result" class="result-pre"></pre>
-    </div>
-  </div>
-
-  <!-- DASH PANEL -->
-  <div id="panel-dash" style="display:none">
-    <div class="stats">
-      <div class="stat"><div class="val" id="d-total">—</div><div class="lbl">Total cotações</div></div>
-      <div class="stat"><div class="val" id="d-done">—</div><div class="lbl">Concluídas</div></div>
-      <div class="stat"><div class="val" id="d-proc">—</div><div class="lbl">Processando</div></div>
-      <div class="stat"><div class="val" id="d-uptime">—</div><div class="lbl">Uptime (s)</div></div>
-    </div>
-    <div class="qtable">
-      <div class="tbl-hdr">
-        <h3>Últimas cotações</h3>
-        <button class="refresh-btn" onclick="loadDash()">↻ Atualizar</button>
-      </div>
-      <table>
-        <thead><tr>
-          <th>ID / Request</th><th>Produto</th><th>Status</th>
-          <th>Melhor preço</th><th>Loja</th><th>Iniciado</th>
-        </tr></thead>
-        <tbody id="dash-tbody"><tr><td colspan="6" style="text-align:center;color:var(--muted);padding:2rem">Carregando...</td></tr></tbody>
-      </table>
-    </div>
-  </div>
-
 </div>
 
+<footer>
+  <strong>PrecoBom</strong> · Comparador de preços automático · Dados via Google Shopping em tempo real<br>
+  <span style="font-size:11px;margin-top:4px;display:block">Os preços podem variar por região e disponibilidade · <a href="#" onclick="showApiDocs()" style="color:rgba(255,255,255,.4);text-decoration:underline">Integrar via API</a></span>
+</footer>
+
 <script>
-function showPanel(p) {
-  ['docs','test','dash'].forEach(id => {
-    document.getElementById('panel-'+id).style.display = id===p ? '' : 'none';
+const API_KEY = 'precobom-2024-beatriz';
+
+// ── STATE
+let running = false;
+const links = [];
+
+// ── STORE COLORS
+const SC = {
+  'mercado livre':{bg:'#FEF9C3',c:'#854D0E'},
+  'amazon':{bg:'#FFF7ED',c:'#C2410C'},
+  'magalu':{bg:'#DBEAFE',c:'#1D4ED8'},
+  'americanas':{bg:'#FEE2E2',c:'#B91C1C'},
+  'shopee':{bg:'#FFEDD5',c:'#C2410C'},
+  'iplace':{bg:'#F3E8FF',c:'#7E22CE'},
+  'nissei':{bg:'#ECFDF5',c:'#065F46'},
+  'casas bahia':{bg:'#FEF3C7',c:'#92400E'},
+};
+function storeColor(name) {
+  const k = (name||'').toLowerCase();
+  for (const [key, val] of Object.entries(SC)) if (k.includes(key)) return val;
+  return {bg:'#F3F4F6',c:'#374151'};
+}
+
+// ── TABS
+function switchTab(t) {
+  document.querySelectorAll('.tab').forEach((b,i)=>b.classList.toggle('on',(i===0&&t==='name')||(i===1&&t==='link')));
+  document.getElementById('panel-name').classList.toggle('on',t==='name');
+  document.getElementById('panel-link').classList.toggle('on',t==='link');
+}
+
+// ── LINKS
+function addLink() {
+  const inp = document.getElementById('link-input');
+  const raw = inp.value.trim();
+  if (!raw) return;
+  let url;
+  try { url = new URL(raw.startsWith('http')?raw:'https://'+raw).href; }
+  catch { setStatus('URL inválida. Cole o link completo.','err'); return; }
+  if (links.find(l=>l.url===url)) { setStatus('Link já adicionado.','err'); return; }
+  if (links.length>=5) { setStatus('Máximo 5 links.','err'); return; }
+  links.push({url,id:Date.now()});
+  inp.value='';
+  renderTags();
+  document.getElementById('link-btn').disabled=false;
+  clearStatus();
+}
+function removeLink(id) {
+  links.splice(links.findIndex(l=>l.id===id),1);
+  renderTags();
+  document.getElementById('link-btn').disabled=!links.length;
+}
+function renderTags() {
+  document.getElementById('ltags').innerHTML=links.map(l=>{
+    let host='link';try{host=new URL(l.url).hostname.replace('www.','');}catch{}
+    return `<div class="ltag"><div class="dot"></div><span>${host}</span><button onclick="removeLink(${l.id})">✕</button></div>`;
+  }).join('');
+}
+
+// ── API CALL
+async function apiFetch(endpoint, body) {
+  const r = await fetch(endpoint, {
+    method:'POST',
+    headers:{'Content-Type':'application/json','x-api-key':API_KEY},
+    body: JSON.stringify(body)
   });
-  document.querySelectorAll('.tab').forEach((b,i) =>
-    b.classList.toggle('on', ['docs','test','dash'][i]===p));
-  if (p === 'dash') loadDash();
+  if (!r.ok) throw new Error('Erro '+r.status);
+  return r.json();
 }
 
-async function runTest() {
-  const name  = document.getElementById('t-name').value.trim();
-  const links = document.getElementById('t-links').value.trim().split('\n').map(l=>l.trim()).filter(Boolean);
-  const reqid = document.getElementById('t-reqid').value.trim() || ('TEST-'+Date.now());
-  const key   = document.getElementById('t-key').value.trim();
-  const pre   = document.getElementById('test-result');
-  const btn   = document.getElementById('test-btn');
-
-  if (!name && !links.length) { alert('Preencha o nome ou pelo menos um link.'); return; }
-
-  btn.disabled = true; btn.textContent = 'Buscando…';
-  pre.style.display = 'block';
-  pre.textContent = 'Aguardando resultado…';
-
+// ── SEARCH NAME
+async function searchName() {
+  const q = document.getElementById('name-input').value.trim();
+  if (!q||running) return;
+  running=true;
+  const btn=document.getElementById('name-btn');
+  btn.disabled=true;btn.innerHTML='<div class="spin" style="border-color:rgba(255,255,255,.3);border-top-color:#fff"></div> Buscando…';
+  hideDefault();clearResults();
+  setStatus(`Pesquisando "<strong>${q}</strong>" em lojas brasileiras…`,'loading');
   try {
-    const r = await fetch('/api/search', {
-      method: 'POST',
-      headers: { 'Content-Type':'application/json', 'x-api-key': key },
-      body: JSON.stringify({ name, links, requestId: reqid })
-    });
-    const data = await r.json();
-    pre.textContent = JSON.stringify(data, null, 2);
-  } catch(e) {
-    pre.textContent = 'Erro: ' + e.message;
-  }
-  btn.disabled = false; btn.textContent = 'Executar cotação';
+    const data = await apiFetch('/api/search',{name:q});
+    clearStatus();
+    renderResults(data);
+  } catch(e) { setStatus('Erro: '+e.message,'err'); }
+  running=false;btn.disabled=false;btn.innerHTML='<svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg> Comparar';
 }
 
-async function loadDash() {
-  const key = document.getElementById('t-key')?.value || 'precobom-dev-key-troque-em-producao';
+// ── SEARCH LINKS
+async function searchLinks() {
+  if (!links.length||running) return;
+  running=true;
+  document.getElementById('link-btn').disabled=true;
+  hideDefault();clearResults();
+  setStatus('Analisando links e buscando preços…','loading');
   try {
-    const [qRes, hRes] = await Promise.all([
-      fetch('/api/quote?limit=30', { headers: {'x-api-key': key} }),
-      fetch('/api/health')
-    ]);
-    const q = await qRes.json();
-    const h = await hRes.json();
+    const data = await apiFetch('/api/search',{links:links.map(l=>l.url)});
+    clearStatus();
+    renderResults(data);
+  } catch(e) { setStatus('Erro: '+e.message,'err'); }
+  running=false;document.getElementById('link-btn').disabled=false;
+}
 
-    const list = q.quotations || [];
-    document.getElementById('d-total').textContent = list.length;
-    document.getElementById('d-done').textContent  = list.filter(x=>x.status==='done').length;
-    document.getElementById('d-proc').textContent  = list.filter(x=>x.status==='processing').length;
-    document.getElementById('d-uptime').textContent = Math.round(h.uptime || 0);
+function quick(q) { switchTab('name'); document.getElementById('name-input').value=q; searchName(); }
 
-    const tbody = document.getElementById('dash-tbody');
-    if (!list.length) {
-      tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--muted);padding:2rem">Nenhuma cotação ainda. Faça um teste!</td></tr>';
-      return;
-    }
-    tbody.innerHTML = list.map(q => `
-      <tr>
-        <td style="font-family:monospace;font-size:12px">${(q.requestId||q.quotationId||'').substring(0,16)}</td>
-        <td style="max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${q.name||''}">${q.name||'—'}</td>
-        <td><span class="status-badge s-${q.status}">${q.status==='done'?'✓ Concluída':q.status==='processing'?'⏳ Processando':'✗ Erro'}</span></td>
-        <td>${q.bestPrice ? 'R$ '+Number(q.bestPrice).toFixed(2) : '—'}</td>
-        <td>${q.bestStore||'—'}</td>
-        <td style="font-size:12px;color:var(--muted)">${q.startedAt ? new Date(q.startedAt).toLocaleTimeString('pt-BR') : '—'}</td>
-      </tr>`).join('');
-  } catch(e) {
-    document.getElementById('dash-tbody').innerHTML =
-      `<tr><td colspan="6" style="color:var(--danger);padding:1rem">Erro ao carregar: ${e.message}</td></tr>`;
+// ── RENDER
+function renderResults(data) {
+  const ok  = (data.results||[]).filter(r=>r.price>0).sort((a,b)=>a.price-b.price);
+  const err = (data.results||[]).filter(r=>!r.price||r.price<=0);
+  const el  = document.getElementById('results');
+  el.innerHTML='';
+
+  if (!ok.length) { setStatus('Nenhuma oferta encontrada. Tente um nome mais específico.','err'); return; }
+
+  const min=ok[0].price, max=ok[ok.length-1].price, saved=max-min;
+
+  // Status bar
+  setStatus(
+    `<strong>${ok.length} oferta${ok.length>1?'s':''}</strong> encontrada${ok.length>1?'s':''} para <em>${data.productName||''}</em>`+
+    (saved>0?` · Economize até <strong>${fmtBRL(saved)}</strong> escolhendo certo`:''),
+    'ok'
+  );
+
+  // Summary
+  const sb=document.createElement('div');
+  sb.className='summary-box';
+  sb.innerHTML=`
+    <div class="sum-item"><div class="sum-val green">${fmtBRL(min)}</div><div class="sum-lbl">Menor preço</div></div>
+    <div class="sum-item"><div class="sum-val">${ok[0].store}</div><div class="sum-lbl">Melhor loja</div></div>
+    <div class="sum-item"><div class="sum-val gold">${fmtBRL(saved)}</div><div class="sum-lbl">Economia máx.</div></div>
+    <div class="sum-item"><div class="sum-val">${ok.length}</div><div class="sum-lbl">Lojas comparadas</div></div>`;
+  el.appendChild(sb);
+
+  // Product header
+  const ph=document.createElement('div');
+  ph.className='phdr';
+  const thumb=ok[0]?.thumbnail;
+  ph.innerHTML=`
+    ${thumb?`<img class="pthumb" src="${thumb}" alt="" onerror="this.style.display='none'">`:'<div class="picon">🛍️</div>'}
+    <div class="pinfo">
+      <div class="pmeta">Resultado da comparação</div>
+      <h2>${data.productName||'Produto encontrado'}</h2>
+      <div class="bestchip">🏆 Melhor oferta: ${fmtBRL(min)} — ${ok[0].store}</div>
+    </div>`;
+  el.appendChild(ph);
+
+  // Cards header
+  const sh=document.createElement('div');
+  sh.className='sechdr';
+  sh.innerHTML=`<h2>Comparativo de ofertas</h2><span>Ordenado por menor preço</span>`;
+  el.appendChild(sh);
+
+  // Cards grid
+  const grid=document.createElement('div');
+  grid.className='grid';
+
+  ok.forEach((r,i)=>{
+    const sc=storeColor(r.store);
+    const init=(r.store||'L').split(' ').map(w=>w[0]).join('').substring(0,2).toUpperCase();
+    const diff=r.price-min;
+    const pctOff=r.oldPrice?Math.round((1-r.price/r.oldPrice)*100):0;
+    const card=document.createElement('div');
+    card.className='card'+(i===0?' best':'');
+    card.style.animationDelay=(i*55)+'ms';
+    card.innerHTML=`
+      ${i===0?'<div class="best-tag">🏆 Melhor preço</div>':''}
+      ${pctOff>0?`<div style="position:absolute;top:12px;right:12px;background:var(--danger);color:#fff;font-size:10px;font-weight:700;padding:2px 7px;border-radius:4px">-${pctOff}%</div>`:''}
+      <div class="c-store">
+        <div class="c-av" style="background:${sc.bg};color:${sc.c}">${init}</div>
+        <div>
+          <div class="c-sname">${r.store}</div>
+          <div class="c-ssub">${r.condition==='new'?'Produto novo':'Disponível'}</div>
+        </div>
+      </div>
+      ${r.thumbnail?`<img class="c-thumb" src="${r.thumbnail}" alt="${r.title}" onerror="this.style.display='none'">`:''}
+      <div class="c-title">${r.title||''}</div>
+      ${r.oldPrice?`<div class="c-old">${fmtBRL(r.oldPrice)}</div>`:''}
+      <div class="c-price">${fmtBRL(r.price)}</div>
+      <div class="c-ship${r.freeShip?' free':''}">${r.freeShip?'✓ Frete grátis':(r.freight||'Frete a calcular')}</div>
+      ${r.rating?`<div class="c-rat"><span class="stars">${'★'.repeat(Math.min(5,Math.round(r.rating)))}</span> ${(+r.rating).toFixed(1)}${r.reviews?' ('+fmtNum(r.reviews)+')':''}</div>`:''}
+      <div class="c-diff ${i===0?'dok':'dbad'}">${i===0?'✓ Menor preço disponível':'+'+fmtBRL(diff)+' mais caro'}</div>
+      <a href="${r.url||'#'}" target="_blank" rel="noopener" class="c-btn">Ver oferta →</a>`;
+    grid.appendChild(card);
+  });
+
+  err.forEach(r=>{
+    const card=document.createElement('div');
+    card.className='card err-card';
+    card.innerHTML=`<div class="c-sname">${r.store||'Loja'}</div><div style="font-size:12px;color:var(--muted);margin-top:6px;line-height:1.5">${r.error||'Sem preço disponível'}</div>`;
+    grid.appendChild(card);
+  });
+  el.appendChild(grid);
+
+  // Bar chart
+  if (ok.length>1) {
+    const cw=document.createElement('div');
+    cw.className='chart-wrap';
+    cw.innerHTML=`<div class="chart-hdr">Comparativo visual de preços <span>Barras proporcionais ao valor</span></div>`+
+      ok.map((r,i)=>{
+        const pct=Math.round((r.price/max)*100);
+        const diff=r.price-min;
+        return`<div class="brow">
+          <div class="blab" title="${r.store}">${r.store}</div>
+          <div class="btrack"><div class="bfill ${i===0?'b0':'bn'}" data-pct="${pct}">${fmtBRL(r.price)}</div></div>
+          <div class="bsave" style="color:${i===0?'var(--accent2)':'var(--danger)'}">${i===0?'✓ melhor':'+'+fmtBRL(diff)}</div>
+        </div>`;
+      }).join('');
+    el.appendChild(cw);
+    requestAnimationFrame(()=>requestAnimationFrame(()=>{
+      cw.querySelectorAll('.bfill').forEach(f=>f.style.width=f.dataset.pct+'%');
+    }));
   }
 }
+
+// ── UTILS
+function fmtBRL(v){return'R$ '+Number(v).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});}
+function fmtNum(n){return n>999?(n/1000).toFixed(1)+'k':String(n);}
+function setStatus(html,t){document.getElementById('status-wrap').innerHTML=`<div class="sbar ${t}">${t==='loading'?'<div class="spin"></div>':t==='ok'?'<span>✓</span>':'<span>⚠</span>'}<span>${html}</span></div>`;}
+function clearStatus(){document.getElementById('status-wrap').innerHTML='';}
+function clearResults(){document.getElementById('results').innerHTML='';}
+function hideDefault(){document.getElementById('default-section').style.display='none';}
+function showApiDocs(){alert('Endpoint: POST /api/quote\nHeader: x-api-key: precobom-2024-beatriz\n\nBody:\n{\n  "requestId": "SOLIC-001",\n  "name": "Produto",\n  "webhookUrl": "https://seu-sistema.com/webhook"\n}');}
+
+document.getElementById('name-input').addEventListener('keydown',e=>{if(e.key==='Enter')searchName();});
+document.getElementById('link-input').addEventListener('keydown',e=>{if(e.key==='Enter')addLink();});
 </script>
 </body>
 </html>

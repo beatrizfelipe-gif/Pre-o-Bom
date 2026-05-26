@@ -162,6 +162,46 @@ footer strong{color:rgba(255,255,255,.6)}
   .phdr{flex-direction:column;align-items:flex-start}
   .summary-box{grid-template-columns:repeat(2,1fr)}
 }
+
+/* ── CATEGORY TABS */
+.cat-tabs{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:1.25rem}
+.ctab{display:flex;align-items:center;gap:7px;padding:8px 16px;border-radius:99px;border:1.5px solid var(--border);background:var(--surface);font-size:13px;font-weight:500;color:var(--muted);cursor:pointer;transition:all .2s}
+.ctab:hover{border-color:var(--accent);color:var(--accent)}
+.ctab.on{border-color:transparent;color:#fff}
+.ctab.on.c0{background:var(--accent)}
+.ctab.on.c1{background:#1D4ED8}
+.ctab.on.c2{background:#C4932A}
+.ctab.on.c3{background:#7E22CE}
+.ctab-icon{font-size:15px}
+
+/* ── TOP 3 PODIUM */
+.podium{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:2rem}
+.podium-card{background:var(--surface);border:1.5px solid var(--border);border-radius:var(--r);padding:1.1rem;display:flex;flex-direction:column;gap:.45rem;position:relative;animation:fu .35s ease both;transition:box-shadow .2s,transform .2s}
+.podium-card:hover{box-shadow:var(--shmd);transform:translateY(-3px)}
+.podium-card.p1{border-color:var(--gold);border-width:2px;box-shadow:0 0 0 4px rgba(196,147,42,.08)}
+.podium-card.p2{border-color:#9CA3AF}
+.podium-card.p3{border-color:#CD7C32}
+.place-badge{position:absolute;top:-12px;left:50%;transform:translateX(-50%);width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;font-family:'Syne',sans-serif;border:2px solid var(--surface)}
+.place-badge.p1{background:var(--gold);color:#fff}
+.place-badge.p2{background:#9CA3AF;color:#fff}
+.place-badge.p3{background:#CD7C32;color:#fff}
+.podium-store{display:flex;align-items:center;gap:7px;margin-top:.5rem}
+.podium-av{width:30px;height:30px;border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;flex-shrink:0;font-family:'Syne',sans-serif}
+.podium-sname{font-size:12px;font-weight:500}
+.podium-thumb{width:100%;height:90px;object-fit:contain;border-radius:8px;background:var(--bg);margin:.2rem 0}
+.podium-title{font-size:11px;color:var(--muted);line-height:1.4;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.podium-price{font-family:'Syne',sans-serif;font-size:22px;font-weight:800;letter-spacing:-.5px;color:var(--text)}
+.podium-sub{font-size:11px;color:var(--muted)}
+.podium-sub.free{color:var(--accent2);font-weight:500}
+.podium-score{display:flex;align-items:center;gap:5px;font-size:11px;font-weight:500;padding:2px 8px;border-radius:4px;align-self:flex-start}
+.score-price{background:var(--accent-bg);color:var(--accent)}
+.score-quality{background:var(--gold-bg);color:var(--gold)}
+.score-value{background:#F3E8FF;color:#7E22CE}
+.podium-btn{display:block;text-align:center;padding:8px;border-radius:var(--rsm);border:1.5px solid var(--border);background:transparent;font-size:12px;font-weight:500;color:var(--text);text-decoration:none;transition:all .18s;margin-top:auto}
+.podium-btn:hover{background:var(--text);color:#fff;border-color:var(--text)}
+.podium-card.p1 .podium-btn{background:var(--gold);color:#fff;border-color:var(--gold)}
+
+@media(max-width:580px){.podium{grid-template-columns:1fr}}
 </style>
 </head>
 <body>
@@ -238,6 +278,19 @@ footer strong{color:rgba(255,255,255,.6)}
 <div class="main">
   <div id="status-wrap"></div>
   <div id="results"></div>
+
+  <!-- CATEGORY SECTION -->
+  <div id="cat-section" style="display:none">
+    <div class="sechdr" style="margin-bottom:.75rem"><h2>Top 3 por categoria</h2><span>Escolha o critério mais importante para você</span></div>
+    <div class="cat-tabs">
+      <button class="ctab on c0" onclick="setCat(0,this)"><span class="ctab-icon">💰</span> Menor Preço</button>
+      <button class="ctab c1" onclick="setCat(1,this)"><span class="ctab-icon">⭐</span> Melhor Avaliação</button>
+      <button class="ctab c2" onclick="setCat(2,this)"><span class="ctab-icon">🏅</span> Custo-Benefício</button>
+      <button class="ctab c3" onclick="setCat(3,this)"><span class="ctab-icon">🚚</span> Frete Grátis</button>
+    </div>
+    <div class="podium" id="podium"></div>
+  </div>
+
 
   <div id="default-section">
     <div class="sechdr"><h2>Buscas populares</h2><span>Clique para comparar agora</span></div>
@@ -451,6 +504,9 @@ function renderResults(data) {
   });
   el.appendChild(grid);
 
+  // Categories
+  if (ok.length>=2) showCatSection(ok);
+
   // Bar chart
   if (ok.length>1) {
     const cw=document.createElement('div');
@@ -477,9 +533,108 @@ function fmtBRL(v){return'R$ '+Number(v).toLocaleString('pt-BR',{minimumFraction
 function fmtNum(n){return n>999?(n/1000).toFixed(1)+'k':String(n);}
 function setStatus(html,t){document.getElementById('status-wrap').innerHTML=`<div class="sbar ${t}">${t==='loading'?'<div class="spin"></div>':t==='ok'?'<span>✓</span>':'<span>⚠</span>'}<span>${html}</span></div>`;}
 function clearStatus(){document.getElementById('status-wrap').innerHTML='';}
-function clearResults(){document.getElementById('results').innerHTML='';}
+function clearResults(){document.getElementById('results').innerHTML='';document.getElementById('cat-section').style.display='none';}
 function hideDefault(){document.getElementById('default-section').style.display='none';}
 function showApiDocs(){alert('Endpoint: POST /api/quote\nHeader: x-api-key: precobom-2024-beatriz\n\nBody:\n{\n  "requestId": "SOLIC-001",\n  "name": "Produto",\n  "webhookUrl": "https://seu-sistema.com/webhook"\n}');}
+
+
+// ── CATEGORY LOGIC ──────────────────────────────────────────────
+let _allResults = [];
+
+function setCat(idx, btn) {
+  document.querySelectorAll('.ctab').forEach(b => b.classList.remove('on','c0','c1','c2','c3'));
+  btn.classList.add('on','c'+idx);
+  renderPodium(idx);
+}
+
+function scoreResults(results) {
+  const prices  = results.map(r => r.price||999999);
+  const minP    = Math.min(...prices);
+  const maxP    = Math.max(...prices);
+  const maxRat  = Math.max(...results.map(r => r.rating||0), 1);
+
+  return results.map(r => {
+    const priceScore   = maxP > minP ? 100 - Math.round(((r.price-minP)/(maxP-minP))*100) : 100;
+    const qualScore    = r.rating ? Math.round((r.rating/5)*100) : 40;
+    const freightBonus = r.freeShip ? 15 : 0;
+    const valueScore   = Math.round(priceScore*0.6 + qualScore*0.3 + freightBonus*0.1);
+    return { ...r, _priceScore: priceScore, _qualScore: qualScore, _valueScore: valueScore };
+  });
+}
+
+function renderPodium(catIdx) {
+  if (!_allResults.length) return;
+  const scored = scoreResults(_allResults);
+
+  let sorted, scoreKey, scoreLabel, scoreClass;
+  if (catIdx === 0) {
+    sorted     = [...scored].sort((a,b) => a.price - b.price);
+    scoreKey   = '_priceScore';
+    scoreLabel = r => `Preço ${r._priceScore}pts`;
+    scoreClass = 'score-price';
+  } else if (catIdx === 1) {
+    sorted     = [...scored].sort((a,b) => (b.rating||0)-(a.rating||0));
+    scoreKey   = '_qualScore';
+    scoreLabel = r => r.rating ? `★ ${(+r.rating).toFixed(1)} · ${fmtNum(r.reviews||0)} avaliações` : 'Sem avaliação';
+    scoreClass = 'score-quality';
+  } else if (catIdx === 2) {
+    sorted     = [...scored].sort((a,b) => b._valueScore - a._valueScore);
+    scoreKey   = '_valueScore';
+    scoreLabel = r => `Score ${r._valueScore}/100`;
+    scoreClass = 'score-value';
+  } else {
+    // Frete grátis primeiro, depois menor preço
+    const free    = scored.filter(r => r.freeShip).sort((a,b) => a.price-b.price);
+    const notFree = scored.filter(r => !r.freeShip).sort((a,b) => a.price-b.price);
+    sorted     = [...free, ...notFree];
+    scoreKey   = '_priceScore';
+    scoreLabel = r => r.freeShip ? '✓ Frete grátis incluído' : 'Frete a calcular';
+    scoreClass = 'score-price';
+  }
+
+  const top3 = sorted.slice(0,3);
+  const medals = ['🥇','🥈','🥉'];
+  const placeClass = ['p1','p2','p3'];
+
+  const podium = document.getElementById('podium');
+  podium.innerHTML = '';
+
+  top3.forEach((r, i) => {
+    const sc = storeColor(r.store);
+    const init = (r.store||'L').split(' ').map(w=>w[0]).join('').substring(0,2).toUpperCase();
+    const diff = i > 0 ? r.price - top3[0].price : 0;
+
+    const card = document.createElement('div');
+    card.className = `podium-card ${placeClass[i]}`;
+    card.style.animationDelay = (i*80)+'ms';
+    card.innerHTML = `
+      <div class="place-badge ${placeClass[i]}">${medals[i]}</div>
+      <div class="podium-store">
+        <div class="podium-av" style="background:${sc.bg};color:${sc.c}">${init}</div>
+        <div class="podium-sname">${r.store}</div>
+      </div>
+      ${r.thumbnail?`<img class="podium-thumb" src="${r.thumbnail}" alt="" onerror="this.style.display='none'">`:''}
+      <div class="podium-title">${r.title||''}</div>
+      <div class="podium-price">${fmtBRL(r.price)}</div>
+      <div class="podium-sub ${r.freeShip?'free':''}">${r.freeShip?'✓ Frete grátis':(r.freight||'Ver frete')}</div>
+      <div class="podium-score ${scoreClass}">${scoreLabel(r)}</div>
+      ${i>0?`<div style="font-size:11px;color:var(--danger);font-weight:500">+${fmtBRL(diff)} vs melhor</div>`:''}
+      <a href="${r.url||'#'}" target="_blank" rel="noopener" class="podium-btn">Ver oferta →</a>`;
+    podium.appendChild(card);
+  });
+}
+
+function showCatSection(results) {
+  _allResults = results;
+  const sec = document.getElementById('cat-section');
+  sec.style.display = '';
+  // reset to first tab
+  document.querySelectorAll('.ctab').forEach((b,i) => {
+    b.classList.remove('on','c0','c1','c2','c3');
+    if (i===0) b.classList.add('on','c0');
+  });
+  renderPodium(0);
+}
 
 document.getElementById('name-input').addEventListener('keydown',e=>{if(e.key==='Enter')searchName();});
 document.getElementById('link-input').addEventListener('keydown',e=>{if(e.key==='Enter')addLink();});

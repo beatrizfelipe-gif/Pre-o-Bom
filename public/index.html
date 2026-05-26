@@ -281,12 +281,15 @@ footer strong{color:rgba(255,255,255,.6)}
 
   <!-- CATEGORY SECTION -->
   <div id="cat-section" style="display:none">
-    <div class="sechdr" style="margin-bottom:.75rem"><h2>Top 3 por categoria</h2><span>Escolha o critério mais importante para você</span></div>
-    <div class="cat-tabs">
-      <button class="ctab on c0" onclick="setCat(0,this)"><span class="ctab-icon">💰</span> Menor Preço</button>
-      <button class="ctab c1" onclick="setCat(1,this)"><span class="ctab-icon">⭐</span> Melhor Avaliação</button>
-      <button class="ctab c2" onclick="setCat(2,this)"><span class="ctab-icon">🏅</span> Custo-Benefício</button>
-      <button class="ctab c3" onclick="setCat(3,this)"><span class="ctab-icon">🚚</span> Frete Grátis</button>
+    <div class="sechdr" style="margin-bottom:.75rem"><h2>🏆 Top 3 — Melhor custo-benefício geral</h2><span>Score combinado: custo + qualidade + prazo</span></div>
+    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:1.25rem">
+      <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+        <span style="font-size:12px;color:var(--muted)">Score combinado:</span>
+        <span style="font-size:12px;font-weight:500;background:var(--accent-bg);color:var(--accent);padding:3px 10px;border-radius:99px">💰 Custo 50%</span>
+        <span style="font-size:12px;font-weight:500;background:#FBF3E0;color:var(--gold);padding:3px 10px;border-radius:99px">⭐ Qualidade 30%</span>
+        <span style="font-size:12px;font-weight:500;background:#EFF6FF;color:#1D4ED8;padding:3px 10px;border-radius:99px">🚚 Prazo 20%</span>
+      </div>
+      <span style="font-size:11px;color:var(--muted)">Frete grátis = entrega mais rápida</span>
     </div>
     <div class="podium" id="podium"></div>
   </div>
@@ -548,51 +551,54 @@ function setCat(idx, btn) {
 }
 
 function scoreResults(results) {
-  const prices  = results.map(r => r.price||999999);
-  const minP    = Math.min(...prices);
-  const maxP    = Math.max(...prices);
-  const maxRat  = Math.max(...results.map(r => r.rating||0), 1);
+  const prices = results.map(r => r.price||999999);
+  const minP   = Math.min(...prices);
+  const maxP   = Math.max(...prices);
+  const ratings = results.map(r => r.rating||0);
+  const maxRat  = Math.max(...ratings, 1);
+  const minRat  = Math.min(...ratings.filter(r=>r>0), maxRat);
 
   return results.map(r => {
-    const priceScore   = maxP > minP ? 100 - Math.round(((r.price-minP)/(maxP-minP))*100) : 100;
-    const qualScore    = r.rating ? Math.round((r.rating/5)*100) : 40;
-    const freightBonus = r.freeShip ? 15 : 0;
-    const valueScore   = Math.round(priceScore*0.6 + qualScore*0.3 + freightBonus*0.1);
-    return { ...r, _priceScore: priceScore, _qualScore: qualScore, _valueScore: valueScore };
+    // CUSTO (50%) — quanto mais barato, maior o score
+    const priceScore = maxP > minP
+      ? Math.round(100 - ((r.price - minP) / (maxP - minP)) * 100)
+      : 100;
+
+    // QUALIDADE (30%) — nota ponderada por número de reviews
+    let qualScore = 40; // base quando não há dados
+    if (r.rating) {
+      const ratingNorm = Math.round((r.rating / 5) * 100);
+      // reviews boost: até +15pts para lojas com muitas avaliações
+      const reviewBoost = r.reviews ? Math.min(15, Math.round(Math.log10(r.reviews+1)*7)) : 0;
+      qualScore = Math.min(100, ratingNorm + reviewBoost);
+    }
+
+    // PRAZO (20%) — frete grátis = proxy de entrega mais rápida
+    const prazoScore = r.freeShip ? 100 : 40;
+
+    // SCORE FINAL ponderado: 50% custo, 30% qualidade, 20% prazo
+    const finalScore = Math.round(
+      priceScore * 0.50 +
+      qualScore  * 0.30 +
+      prazoScore * 0.20
+    );
+
+    return {
+      ...r,
+      _priceScore: priceScore,
+      _qualScore:  qualScore,
+      _prazoScore: prazoScore,
+      _finalScore: finalScore,
+    };
   });
 }
 
 function renderPodium(catIdx) {
   if (!_allResults.length) return;
   const scored = scoreResults(_allResults);
-
-  let sorted, scoreKey, scoreLabel, scoreClass;
-  if (catIdx === 0) {
-    sorted     = [...scored].sort((a,b) => a.price - b.price);
-    scoreKey   = '_priceScore';
-    scoreLabel = r => `Preço ${r._priceScore}pts`;
-    scoreClass = 'score-price';
-  } else if (catIdx === 1) {
-    sorted     = [...scored].sort((a,b) => (b.rating||0)-(a.rating||0));
-    scoreKey   = '_qualScore';
-    scoreLabel = r => r.rating ? `★ ${(+r.rating).toFixed(1)} · ${fmtNum(r.reviews||0)} avaliações` : 'Sem avaliação';
-    scoreClass = 'score-quality';
-  } else if (catIdx === 2) {
-    sorted     = [...scored].sort((a,b) => b._valueScore - a._valueScore);
-    scoreKey   = '_valueScore';
-    scoreLabel = r => `Score ${r._valueScore}/100`;
-    scoreClass = 'score-value';
-  } else {
-    // Frete grátis primeiro, depois menor preço
-    const free    = scored.filter(r => r.freeShip).sort((a,b) => a.price-b.price);
-    const notFree = scored.filter(r => !r.freeShip).sort((a,b) => a.price-b.price);
-    sorted     = [...free, ...notFree];
-    scoreKey   = '_priceScore';
-    scoreLabel = r => r.freeShip ? '✓ Frete grátis incluído' : 'Frete a calcular';
-    scoreClass = 'score-price';
-  }
-
-  const top3 = sorted.slice(0,3);
+  // Sempre ordena pelo score final combinado (custo 50% + qualidade 30% + prazo 20%)
+  const sorted = [...scored].sort((a,b) => b._finalScore - a._finalScore);
+  const top3   = sorted.slice(0,3);
   const medals = ['🥇','🥈','🥉'];
   const placeClass = ['p1','p2','p3'];
 
@@ -600,9 +606,40 @@ function renderPodium(catIdx) {
   podium.innerHTML = '';
 
   top3.forEach((r, i) => {
-    const sc = storeColor(r.store);
+    const sc   = storeColor(r.store);
     const init = (r.store||'L').split(' ').map(w=>w[0]).join('').substring(0,2).toUpperCase();
-    const diff = i > 0 ? r.price - top3[0].price : 0;
+    const priceDiff = i > 0 ? r.price - top3[0].price : 0;
+
+    // Mini barras de breakdown
+    const barW = s => Math.max(4, Math.round(s)) + '%';
+    const breakdown = `
+      <div style="margin:8px 0 4px;display:flex;flex-direction:column;gap:4px">
+        <div style="display:flex;align-items:center;gap:6px">
+          <span style="font-size:10px;color:var(--color-text-tertiary);width:52px;flex-shrink:0">💰 Custo</span>
+          <div style="flex:1;background:var(--color-background-secondary);border-radius:3px;height:6px;overflow:hidden">
+            <div style="width:${barW(r._priceScore)};height:100%;background:#22c55e;border-radius:3px;transition:width .8s"></div>
+          </div>
+          <span style="font-size:10px;color:var(--color-text-secondary);width:28px;text-align:right">${r._priceScore}</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:6px">
+          <span style="font-size:10px;color:var(--color-text-tertiary);width:52px;flex-shrink:0">⭐ Qualid.</span>
+          <div style="flex:1;background:var(--color-background-secondary);border-radius:3px;height:6px;overflow:hidden">
+            <div style="width:${barW(r._qualScore)};height:100%;background:#f59e0b;border-radius:3px;transition:width .8s"></div>
+          </div>
+          <span style="font-size:10px;color:var(--color-text-secondary);width:28px;text-align:right">${r._qualScore}</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:6px">
+          <span style="font-size:10px;color:var(--color-text-tertiary);width:52px;flex-shrink:0">🚚 Prazo</span>
+          <div style="flex:1;background:var(--color-background-secondary);border-radius:3px;height:6px;overflow:hidden">
+            <div style="width:${barW(r._prazoScore)};height:100%;background:#3b82f6;border-radius:3px;transition:width .8s"></div>
+          </div>
+          <span style="font-size:10px;color:var(--color-text-secondary);width:28px;text-align:right">${r._prazoScore}</span>
+        </div>
+      </div>
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:5px 0;border-top:0.5px solid var(--color-border-tertiary);margin-top:4px">
+        <span style="font-size:11px;color:var(--color-text-secondary);font-weight:500">Score final</span>
+        <span style="font-size:14px;font-weight:700;color:${i===0?'#16a34a':'var(--color-text-primary)'}">${r._finalScore}/100</span>
+      </div>`;
 
     const card = document.createElement('div');
     card.className = `podium-card ${placeClass[i]}`;
@@ -617,8 +654,8 @@ function renderPodium(catIdx) {
       <div class="podium-title">${r.title||''}</div>
       <div class="podium-price">${fmtBRL(r.price)}</div>
       <div class="podium-sub ${r.freeShip?'free':''}">${r.freeShip?'✓ Frete grátis':(r.freight||'Ver frete')}</div>
-      <div class="podium-score ${scoreClass}">${scoreLabel(r)}</div>
-      ${i>0?`<div style="font-size:11px;color:var(--danger);font-weight:500">+${fmtBRL(diff)} vs melhor</div>`:''}
+      ${breakdown}
+      ${i>0?`<div style="font-size:11px;color:var(--color-text-danger);font-weight:500;margin-top:2px">+${fmtBRL(priceDiff)} vs 1º lugar</div>`:''}
       <a href="${r.url||'#'}" target="_blank" rel="noopener" class="podium-btn">Ver oferta →</a>`;
     podium.appendChild(card);
   });
